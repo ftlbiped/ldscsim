@@ -150,7 +150,7 @@ def pdmatrix(tau1 = None, tau2 = None, ups = None):
         tau2 = np.square(np.random.normal(0, 1))
     if ups is None:
         ups = np.random.uniform(-np.sqrt(tau1*tau2), np.sqrt(tau1*tau2))
-    if np.abs(ups) >= np.sqrt(tau1 * tau2):
+    if np.abs(ups) > np.sqrt(tau1 * tau2):
         raise Exception("Matrix is not positive definite")
     else:
         return(np.matrix([[tau1, ups], [ups, tau2]]))
@@ -166,12 +166,12 @@ if __name__ == '__main__':
             architecture = ph.Architecture(
                 annot_files = [data_path],
                 vcov_effects = [
-                    pdmatrix(.7, .7, .56), 
-                    pdmatrix(.7, .7, .28)
+                    pdmatrix(.7, .7, .7), 
+                    pdmatrix(.7, .7, .7)
                     ]),
             h2g = 0.7,
-            chromosomes = range(21, 23),
-            name = 'test'
+            chromosomes = range(1, 23),
+            name = 'maf_bin_complete_rg'
             )
     create_beta_and_profiles(s)
     for i in range(2):
