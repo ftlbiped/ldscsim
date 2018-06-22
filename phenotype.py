@@ -4,11 +4,8 @@ import pandas as pd
 from gprim.annotation import Annotation
 
 class Architecture(object):
-    def __init__(self, annot_files, vcov_effects):
-        #self.name = name
-        self.vcov_effects = vcov_effects
-        #TODO: type checking, ensure vcov is positive definite matrix
-        
+    """Stores the 'true' model underlying our simulations"""
+    def __init__(self, annot_files, vcov_effects, snp_scale = False):
         #TODO: manually add in all the arguments here
 
         self.annot_files = annot_files
@@ -17,6 +14,23 @@ class Architecture(object):
             self.annotations[annot_file] = Annotation(annot_file)
 
         #TODO: ensure vcov dimensions match annotations
+        #TODO: type checking, ensure vcov is positive definite matrix
+
+        self.n_snps = 0
+        self.n_snps_cat = []
+        for chrnum in range(1, 23):
+            annot_df = self.annotations.values()[0].annot_df(chrnum)
+            self.n_snps += annot_df.shape[0]
+            cat = annot_df.iloc[:, np.arange(4, annot_df.shape[1])]
+            n_snps_cat_chr = cat.sum(axis = 0)
+            self.n_snps_cat.append(n_snps_cat_chr)
+
+        self.n_snps_cat = np.sum(pd.concat(self.n_snps_cat, axis=1), axis = 1)
+
+        if snp_scale:
+            self.vcov_effects = vcov_effects
+        else:
+            self.vcov_effects = [x/y for x,y in zip(vcov_effects, self.n_snps_cat)]
 
 #TODO: this doesn't work because gprim.annotation assumes sannot instead of annot.
 #      So talk with Yakir, sort this out, and make draw betas more robust

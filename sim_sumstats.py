@@ -3,6 +3,7 @@ import argparse, subprocess, os
 import pandas as pd
 import scipy.stats as stats
 import numpy as np
+import sys
 
 import metadata as sm
 import phenotype as ph
@@ -124,25 +125,6 @@ def make_sumstats(s, beta_num):
     print('saving result to', s.sumstats_filename(beta_num))
     sumstats.to_csv(s.sumstats_file(beta_num, mode='w'), sep='\t', index=False)
 
-    # delete intermediate files
-    if s.low_space:
-        import gzip, shutil
-        print('compressing/deleting intermediate files')
-        for chrnum in s.chromosomes:
-            # # make a gzipped copy of the betanz files before we delete them
-            # fname = s.chr_filestem(beta_num, chrnum)+'.betanz'
-            # with open(fname, 'rb') as f_in, gzip.open(fname+'.gz', 'wb') as f_out:
-            #     shutil.copyfileobj(f_in, f_out)
-
-            for suff in ['betanz','log','nosex','profile','qassoc','assoc.linear']:
-                fname = s.chr_filestem(beta_num, chrnum)+'.'+suff
-                print('removing', fname)
-                if os.path.exists(fname): os.remove(fname)
-        fname = s.noiselessY_filename(beta_num)
-        print('removing', fname)
-        if os.path.exists(fname): os.remove(fname)
-
-
 def pdmatrix(tau1 = None, tau2 = None, ups = None):
     if tau1 is None:
         tau1 = np.square(np.random.normal(0, 1))
@@ -155,28 +137,19 @@ def pdmatrix(tau1 = None, tau2 = None, ups = None):
     else:
         return(np.matrix([[tau1, ups], [ups, tau2]]))
 
-
-data_path = '/n/groups/price/daniel/data/GERAimp.wim9nm/'
-
-
-
 if __name__ == '__main__':
-    s = sm.Simulation(
-            dataset = sm.Dataset(data_path, 'test'),
-            architecture = ph.Architecture(
-                annot_files = [data_path],
-                vcov_effects = [
-                    pdmatrix(.7, .7, .7), 
-                    pdmatrix(.7, .7, .7)
-                    ]),
-            h2g = 0.7,
-            chromosomes = range(1, 23),
-            name = 'maf_bin_complete_rg'
-            )
+    arrayind = sys.argv[2] if len(sys.argv) > 2 else 0
+    s = sm.Simulation.from_json(sys.argv[1], arrayind)
     create_beta_and_profiles(s)
     for i in range(2):
         pheno = make_noiseless_pheno(s, i)
         add_noise_and_save(s, i, pheno)
         make_qassoc(s, i)
         make_sumstats(s, i)
+
+        # If we're running low on space or need to do a lot of simulations,
+        # we'll have to delete our intermediate files
+        if s.low_space:
+            s.remove_intermediate_files(beta_num)
+
 
